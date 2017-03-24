@@ -4,9 +4,8 @@ extern crate tar;
 
 use tar::{Header};
 
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom, Cursor};
 use std::mem::{size_of};
-use std::ops::{Deref};
 use std::path::{PathBuf};
 use std::slice::{from_raw_parts};
 
@@ -24,6 +23,15 @@ pub fn cast_bytes_as_header(buf: &[u8]) -> &Header {
 
 pub trait TarBufferExt {
   fn raw_header(&mut self, pos: u64) -> &[u8];
+
+  fn raw_entries<'a>(&'a mut self) -> Result<TarRawEntries<'a>, ()> where Self: Sized {
+    Ok(TarRawEntries{
+      buffer:   self,
+      pos:      0,
+      idx:      0,
+      closed:   false,
+    })
+  }
 }
 
 pub struct TarBuffer<A> {
@@ -37,15 +45,6 @@ impl<A> TarBuffer<A> where A: Read + Seek {
       inner:    inner,
       blockbuf: None,
     }
-  }
-
-  pub fn raw_entries<'a>(&'a mut self) -> Result<TarRawEntries<'a>, ()> {
-    Ok(TarRawEntries{
-      buffer:   self,
-      pos:      0,
-      idx:      0,
-      closed:   false,
-    })
   }
 }
 
@@ -62,10 +61,10 @@ impl<A> TarBufferExt for TarBuffer<A> where A: Read + Seek {
   }
 }
 
-impl<A> TarBufferExt for TarBuffer<A> where A: Read + Seek + Deref<Target=[u8]> {
+impl<A> TarBufferExt for TarBuffer<Cursor<A>> where A: AsRef<[u8]> {
   fn raw_header(&mut self, pos: u64) -> &[u8] {
     let offset = pos as usize;
-    &self.inner[offset .. offset + BLOCK_SZ]
+    &self.inner.get_ref().as_ref()[offset .. offset + BLOCK_SZ]
   }
 }
 
@@ -100,7 +99,6 @@ impl<'a> Iterator for TarRawEntries<'a> {
     if self.closed {
       return None;
     }
-    //println!("DEBUG: tar entries: parsing: idx: {} pos: {}", self.idx, self.pos);
     let header_pos = self.pos;
     let entry_pos = header_pos + BLOCK_SZ as u64;
     let mut path = None;
@@ -108,7 +106,6 @@ impl<'a> Iterator for TarRawEntries<'a> {
     let mut eof = true;
     {
       let raw_header = self.buffer.raw_header(header_pos);
-      // TODO: check if all zeros for end of archive.
       for &w in cast_bytes_as_u64_slice(raw_header).iter() {
         if w != 0 {
           eof = false;
