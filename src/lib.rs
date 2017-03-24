@@ -28,7 +28,7 @@ pub trait TarBufferExt {
     Ok(TarRawEntries{
       buffer:   self,
       pos:      0,
-      idx:      0,
+      //idx:      0,
       closed:   false,
     })
   }
@@ -88,7 +88,7 @@ impl TarRawEntry {
 pub struct TarRawEntries<'a> {
   buffer:   &'a mut TarBufferExt,
   pos:      u64,
-  idx:      usize,
+  //idx:      usize,
   closed:   bool,
 }
 
@@ -135,7 +135,7 @@ impl<'a> Iterator for TarRawEntries<'a> {
     } else {
       let next_pos = entry_pos + ((entry_sz as usize + BLOCK_SZ - 1) / BLOCK_SZ * BLOCK_SZ) as u64;
       self.pos = next_pos;
-      self.idx += 1;
+      //self.idx += 1;
       Some(Ok(TarRawEntry{
         header_pos:   header_pos,
         path:         path.unwrap(),
