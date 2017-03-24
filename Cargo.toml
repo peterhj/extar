@@ -1,0 +1,11 @@
+[package]
+name = "extar"
+version = "0.0.1"
+authors = ["Peter Jin <peterhaijin@gmail.com>"]
+
+[lib]
+name = "extar"
+path = "src/lib.rs"
+
+[dependencies]
+tar = "*"
