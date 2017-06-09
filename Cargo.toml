@@ -8,4 +8,4 @@ name = "extar"
 path = "src/lib.rs"
 
 [dependencies]
-tar = "*"
+tar = "0.4"
