@@ -7,5 +7,6 @@ authors = ["Peter Jin <peterhaijin@gmail.com>"]
 name = "extar"
 path = "src/lib.rs"
 
-[dependencies]
-tar = "0.4"
+[[bin]]
+name = "extar-inspect"
+path = "tools/extar-inspect.rs"
