@@ -16,9 +16,6 @@ fn main() {
   let path = PathBuf::from(&args[1]);
   let file = File::open(&path).unwrap();
   let mut tar = BufferedTarFile::new(file);
-  let mut entry_count = 0;
-  for _entry in tar.raw_entries() {
-    entry_count += 1;
-  }
+  let entry_count = tar.raw_entries().count();
   println!("file count: {}", entry_count);
 }
