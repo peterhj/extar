@@ -21,6 +21,6 @@ fn main() {
   let file = File::open(&path).unwrap();
   let mut tar = BufferedTarFile::new(file);
   let file_count = tar.raw_entries().count();
-  assert_eq!(file_count, 1281167);
+  assert_eq!(file_count, 1000);
 }
 ```
