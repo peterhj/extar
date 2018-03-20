@@ -66,7 +66,8 @@ pub struct RawTarEntry {
   pub header_pos:   u64,
   pub entry_pos:    u64,
   pub entry_sz:     u64,
-  pub file_path:    PathBuf,
+  pub is_file:      bool,
+  pub path:         PathBuf,
 }
 
 impl RawTarEntry {
@@ -111,22 +112,28 @@ impl<'a> Iterator for RawTarEntries<'a> {
             break;
           }
         }
-        let file_path_cstr = match CStr::from_bytes_with_nul(&header_buf[ .. path_len + 1]) {
+        let path_cstr = match CStr::from_bytes_with_nul(&header_buf[ .. path_len + 1]) {
           Err(e) => panic!("failed to parse file path ({:?}): {:?}", e, &header_buf[ .. 100]),
           Ok(s) => s,
         };
-        let file_path = PathBuf::from(file_path_cstr.to_str().unwrap());
+        let path = PathBuf::from(path_cstr.to_str().unwrap());
         let entry_sz_str = match from_utf8(&header_buf[124 .. 136 - 1]) {
           Err(e) => panic!("failed to parse entry sz ({:?}): {:?}", e, &header_buf[124 .. 136]),
           Ok(s) => s,
         };
         let entry_sz = u64::from_str_radix(entry_sz_str, 8).unwrap();
+        let typeflag = header_buf[156];
+        let is_file = match typeflag {
+          b'0' | b'\0' => true,
+          _ => false,
+        };
         self.pos = entry_pos + (entry_sz + BLOCK_SZ - 1) / BLOCK_SZ * BLOCK_SZ;
         return Some(Ok(RawTarEntry{
           header_pos:   header_pos,
           entry_pos:    entry_pos,
           entry_sz:     entry_sz,
-          file_path:    file_path,
+          is_file:      is_file,
+          path:         path,
         }));
       }
     }
