@@ -2,7 +2,7 @@
 #![feature(specialization)]
 
 use std::ffi::{CStr};
-use std::io::{Read, Seek, SeekFrom, Cursor};
+use std::io::{Read, Seek, SeekFrom};
 use std::mem::{align_of, size_of};
 use std::path::{PathBuf};
 use std::slice::{from_raw_parts};
