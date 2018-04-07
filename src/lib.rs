@@ -1,5 +1,4 @@
 #![feature(align_offset)]
-#![feature(specialization)]
 
 use std::ffi::{CStr};
 use std::io::{Read, Seek, SeekFrom};
@@ -8,9 +7,9 @@ use std::path::{PathBuf};
 use std::slice::{from_raw_parts};
 use std::str::{from_utf8};
 
-pub const BLOCK_SZ: u64 = 512;
+const BLOCK_SZ: u64 = 512;
 
-pub fn cast_bytes_as_u32_slice(buf: &[u8]) -> &[u32] {
+fn cast_bytes_as_u32_slice(buf: &[u8]) -> &[u32] {
   assert_eq!(0, buf.as_ptr().align_offset(align_of::<u32>()));
   assert_eq!(0, buf.len() % size_of::<u32>());
   unsafe { from_raw_parts(buf.as_ptr() as *const u32, buf.len() / size_of::<u32>()) }
@@ -47,7 +46,7 @@ impl<A> BufferedTarFile<A> where A: Read + Seek {
 }
 
 impl<A> RawBufferedTarExt for BufferedTarFile<A> where A: Read + Seek {
-  default fn _raw_header(&mut self, pos: u64) -> &[u8] {
+  fn _raw_header(&mut self, pos: u64) -> &[u8] {
     if self.blockbuf.is_none() {
       let mut h = Vec::with_capacity(BLOCK_SZ as usize);
       h.resize(BLOCK_SZ as usize, 0);
