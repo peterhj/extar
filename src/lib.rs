@@ -17,8 +17,9 @@ pub fn cast_bytes_as_u32_slice(buf: &[u8]) -> &[u32] {
 }
 
 pub trait RawBufferedTarExt {
-  fn raw_header(&mut self, pos: u64) -> &[u8];
+  fn _raw_header(&mut self, pos: u64) -> &[u8];
 
+  /// Get an iterator for the archive records.
   fn raw_entries<'a>(&'a mut self) -> RawTarEntries<'a> where Self: Sized {
     RawTarEntries{
       buffer:   self,
@@ -28,12 +29,15 @@ pub trait RawBufferedTarExt {
   }
 }
 
+/// A reader for an archive. This contains a block-sized (512 bytes) buffer
+/// for parsing archive record headers.
 pub struct BufferedTarFile<A> {
   inner:    A,
   blockbuf: Option<Vec<u8>>,
 }
 
 impl<A> BufferedTarFile<A> where A: Read + Seek {
+  /// Wrap an existing reader for archive processing.
   pub fn new(inner: A) -> Self {
     BufferedTarFile{
       inner:    inner,
@@ -43,7 +47,7 @@ impl<A> BufferedTarFile<A> where A: Read + Seek {
 }
 
 impl<A> RawBufferedTarExt for BufferedTarFile<A> where A: Read + Seek {
-  default fn raw_header(&mut self, pos: u64) -> &[u8] {
+  default fn _raw_header(&mut self, pos: u64) -> &[u8] {
     if self.blockbuf.is_none() {
       let mut h = Vec::with_capacity(BLOCK_SZ as usize);
       h.resize(BLOCK_SZ as usize, 0);
@@ -55,13 +59,8 @@ impl<A> RawBufferedTarExt for BufferedTarFile<A> where A: Read + Seek {
   }
 }
 
-impl<A> RawBufferedTarExt for BufferedTarFile<Cursor<A>> where A: AsRef<[u8]> {
-  fn raw_header(&mut self, pos: u64) -> &[u8] {
-    let offset = pos as usize;
-    &self.inner.get_ref().as_ref()[offset .. offset + BLOCK_SZ as usize]
-  }
-}
-
+/// A record in the archive. Contains a minimal amount of metadata useful for
+/// for out-of-core processing.
 pub struct RawTarEntry {
   pub header_pos:   u64,
   pub entry_pos:    u64,
@@ -97,7 +96,7 @@ impl<'a> Iterator for RawTarEntries<'a> {
     let entry_pos = header_pos + BLOCK_SZ;
     let mut eof = true;
     {
-      let header_buf = self.buffer.raw_header(header_pos);
+      let header_buf = self.buffer._raw_header(header_pos);
       for &w in cast_bytes_as_u32_slice(header_buf).iter() {
         if w != 0 {
           eof = false;
@@ -139,7 +138,7 @@ impl<'a> Iterator for RawTarEntries<'a> {
     }
     let mut eof2 = true;
     {
-      let header_buf2 = self.buffer.raw_header(header_pos + BLOCK_SZ);
+      let header_buf2 = self.buffer._raw_header(header_pos + BLOCK_SZ);
       for &w in cast_bytes_as_u32_slice(header_buf2).iter() {
         if w != 0 {
           eof2 = false;
